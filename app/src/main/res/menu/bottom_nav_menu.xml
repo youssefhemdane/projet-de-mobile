@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/recipeListFragment"
+        android:icon="@drawable/ic_restaurant"
+        android:title="Recettes" />
+
+    <item
+        android:id="@+id/shoppingListFragment"
+        android:icon="@drawable/ic_shopping_cart"
+        android:title="Courses" />
+
+</menu>

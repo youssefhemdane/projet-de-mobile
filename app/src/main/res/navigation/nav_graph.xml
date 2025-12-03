@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/recipeListFragment">
+
+    <!-- Recipe List Fragment -->
+    <fragment
+        android:id="@+id/recipeListFragment"
+        android:name="tn.isilan.projet.ui.recipes.RecipeListFragment"
+        android:label="Mes Recettes"
+        tools:layout="@layout/fragment_recipe_list">
+
+        <action
+            android:id="@+id/action_recipeList_to_recipeDetail"
+            app:destination="@id/recipeDetailFragment" />
+
+        <action
+            android:id="@+id/action_recipeList_to_addRecipe"
+            app:destination="@id/addRecipeFragment" />
+
+        <action
+            android:id="@+id/action_recipeList_to_shoppingList"
+            app:destination="@id/shoppingListFragment" />
+
+    </fragment>
+
+    <!-- Recipe Detail Fragment -->
+    <fragment
+        android:id="@+id/recipeDetailFragment"
+        android:name="tn.isilan.projet.ui.recipes.RecipeDetailFragment"
+        android:label="Détails Recette"
+        tools:layout="@layout/fragment_recipe_detail">
+
+        <argument
+            android:name="recipeId"
+            app:argType="long"
+            android:defaultValue="-1L" />
+
+        <action
+            android:id="@+id/action_recipeDetail_to_recipeList"
+            app:destination="@id/recipeListFragment"
+            app:popUpTo="@id/recipeListFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- Add Recipe Fragment -->
+    <fragment
+        android:id="@+id/addRecipeFragment"
+        android:name="tn.isilan.projet.ui.recipes.AddRecipeFragment"
+        android:label="Nouvelle Recette"
+        tools:layout="@layout/fragment_add_recipe">
+
+        <action
+            android:id="@+id/action_addRecipe_to_recipeList"
+            app:destination="@id/recipeListFragment"
+            app:popUpTo="@id/recipeListFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- Shopping List Fragment -->
+    <fragment
+        android:id="@+id/shoppingListFragment"
+        android:name="tn.isilan.projet.ui.shopping.ShoppingListFragment"
+        android:label="Liste de Courses"
+        tools:layout="@layout/fragment_shopping_list">
+
+        <action
+            android:id="@+id/action_shoppingList_to_recipeList"
+            app:destination="@id/recipeListFragment" />
+
+    </fragment>
+
+</navigation>
