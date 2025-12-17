@@ -48,3 +48,5 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
         return repository.searchRecipes(query)
     }
 }
+
+

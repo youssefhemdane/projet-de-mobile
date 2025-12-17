@@ -1,20 +1,22 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-
+    // Add the safe args plugin here
+    id("kotlin-kapt")
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
     namespace = "tn.isilan.projet"
-    compileSdk = 36
+    compileSdk = 36  // Note: Consider updating to 34 (latest stable)
     buildFeatures {
-        viewBinding =true
+        viewBinding = true
     }
 
     defaultConfig {
         applicationId = "tn.isilan.projet"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 36  // Note: Consider updating to 34
         versionCode = 1
         versionName = "1.0"
 
@@ -46,24 +48,38 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.room.common.jvm)
-    implementation(libs.androidx.foundation.layout)
+
+    // FIX: Remove this duplicate room dependency
+    // implementation(libs.androidx.room.common.jvm) // <-- REMOVE THIS
+
+    // FIX: Remove this duplicate layout dependency
+    // implementation(libs.androidx.foundation.layout) // <-- REMOVE THIS
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    //Room
-    implementation("androidx.room:room-runtime:2.8.0")
-    // Navigation
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
-    // ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
-// RecyclerView
-    implementation("androidx.recyclerview:recyclerview:1.3.1")
 
+    //Room - Add kapt plugin for annotation processing
+    implementation("androidx.room:room-runtime:2.6.1") // Use consistent version
+    implementation("androidx.room:room-ktx:2.6.1") // For Kotlin extensions
+
+
+    // Navigation - Use consistent versions
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
 
+    // ViewModel & LiveData
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
-    // Safe Args (TRÈS IMPORTANT)
-    implementation("androidx.navigation:navigation-safe-args-gradle-plugin:2.7.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 
+    // RecyclerView
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
+
+    // Add Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    kapt("androidx.room:room-compiler:2.6.1")
+
+    // FIX: Remove this - it's a plugin, not a dependency
+    // implementation("androidx.navigation:navigation-safe-args-gradle-plugin:2.7.4") // <-- REMOVE THIS
 }

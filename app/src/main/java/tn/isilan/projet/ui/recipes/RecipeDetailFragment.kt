@@ -5,18 +5,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
-import tn.isilan.projet.data.database.RecipeDatabase
-import tn.isilan.projet.data.repository.RecipeRepository
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import tn.isilan.projet.data.database.RecipeDatabase
+import tn.isilan.projet.data.entities.Recipe
+import tn.isilan.projet.data.repository.RecipeRepository
 import tn.isilan.projet.databinding.FragmentRecipeDetailBinding
 import tn.isilan.projet.ui.viewmodels.RecipeViewModel
 import tn.isilan.projet.ui.viewmodels.ViewModelFactory
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-
 
 class RecipeDetailFragment : Fragment() {
 
@@ -43,16 +42,15 @@ class RecipeDetailFragment : Fragment() {
         val database = RecipeDatabase.getInstance(requireContext())
         val repository = RecipeRepository(database.recipeDao(), database.shoppingListDao())
         val factory = ViewModelFactory(repository)
-        viewModel = ViewModelProvider(this, factory).get(RecipeViewModel::class.java)
+        viewModel = ViewModelProvider(this, factory)[RecipeViewModel::class.java]
 
         loadRecipeDetails()
     }
 
     private fun loadRecipeDetails() {
-        lifecycleScope.launch {
-            viewModel.allRecipes.collect { recipes ->
-                // ✅ Spécifier explicitement le type pour éviter les erreurs
-                val recipeList: List<tn.isilan.projet.data.entities.Recipe> = recipes
+        // Collect the Flow from ViewModel
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.recipes.collectLatest { recipeList: List<Recipe> ->
                 val recipe = recipeList.find { it.id == recipeId }
 
                 recipe?.let { foundRecipe ->
@@ -71,21 +69,14 @@ class RecipeDetailFragment : Fragment() {
     }
 
     private fun formatIngredients(ingredients: String): String {
-        return if (ingredients.contains(",")) {
-            ingredients.split(",").joinToString("\n") { "• ${it.trim()}" }
-        } else {
-            "• $ingredients"
-        }
+        return ingredients.split(",")
+            .joinToString("\n") { "• ${it.trim()}" }
     }
 
     private fun formatInstructions(instructions: String): String {
-        return if (instructions.contains("\n")) {
-            instructions.split("\n").mapIndexed { index, step ->
-                "${index + 1}. ${step.trim()}"
-            }.joinToString("\n")
-        } else {
-            "1. $instructions"
-        }
+        return instructions.split("\n")
+            .mapIndexed { index, step -> "${index + 1}. ${step.trim()}" }
+            .joinToString("\n")
     }
 
     override fun onDestroyView() {
