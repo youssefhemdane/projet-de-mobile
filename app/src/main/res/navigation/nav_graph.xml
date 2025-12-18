@@ -23,14 +23,13 @@
         <action
             android:id="@+id/action_recipeList_to_shoppingList"
             app:destination="@id/shoppingListFragment" />
-
     </fragment>
 
     <!-- Recipe Detail Fragment -->
     <fragment
         android:id="@+id/recipeDetailFragment"
         android:name="tn.isilan.projet.ui.recipes.RecipeDetailFragment"
-        android:label="Détails Recette"
+        android:label="Détail Recette"
         tools:layout="@layout/fragment_recipe_detail">
 
         <argument
@@ -44,6 +43,19 @@
             app:popUpTo="@id/recipeListFragment"
             app:popUpToInclusive="true" />
 
+        <action
+            android:id="@+id/action_recipeDetail_to_addRecipe"
+            app:destination="@id/addRecipeFragment">
+
+            <argument android:name="recipeId" app:argType="long" />
+            <argument android:name="recipeTitle" app:argType="string" />
+            <argument android:name="recipeDescription" app:argType="string" />
+            <argument android:name="recipeIngredients" app:argType="string" />
+            <argument android:name="recipeInstructions" app:argType="string" />
+            <argument android:name="recipePreparationTime" app:argType="integer" />
+            <argument android:name="recipeDifficulty" app:argType="string" />
+            <argument android:name="recipeImageUri" app:argType="string" />
+        </action>
     </fragment>
 
     <!-- Add Recipe Fragment -->
@@ -58,7 +70,6 @@
             app:destination="@id/recipeListFragment"
             app:popUpTo="@id/recipeListFragment"
             app:popUpToInclusive="true" />
-
     </fragment>
 
     <!-- Shopping List Fragment -->
@@ -71,7 +82,6 @@
         <action
             android:id="@+id/action_shoppingList_to_recipeList"
             app:destination="@id/recipeListFragment" />
-
     </fragment>
 
 </navigation>

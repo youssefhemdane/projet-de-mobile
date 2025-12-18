@@ -2,26 +2,21 @@ package tn.isilan.projet.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import tn.isilan.projet.data.entities.Recipe
-import tn.isilan.projet.data.repository.RecipeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import tn.isilan.projet.data.entities.Recipe
+import tn.isilan.projet.data.repository.RecipeRepository
 
 class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
 
     val recipes: Flow<List<Recipe>> = repository.allRecipes
 
+    fun searchRecipes(query: String): Flow<List<Recipe>> {
+        return repository.searchRecipes(query)
+    }
 
-
-    fun addRecipe(
-        title: String,
-        description: String,
-        ingredients: String,
-        instructions: String,
-        preparationTime: Int,
-        difficulty: String,
-        imageUri: String? = null
-    ) {
+    fun addRecipe(title: String, description: String, ingredients: String,
+                  instructions: String, preparationTime: Int, difficulty: String) {
         viewModelScope.launch {
             val recipe = Recipe(
                 title = title,
@@ -29,8 +24,7 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
                 ingredients = ingredients,
                 instructions = instructions,
                 preparationTime = preparationTime,
-                difficulty = difficulty,
-                imageUri = imageUri
+                difficulty = difficulty
             )
             repository.insertRecipe(recipe)
         }
@@ -47,10 +41,4 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
             repository.deleteRecipe(recipe)
         }
     }
-
-    fun searchRecipes(query: String): Flow<List<Recipe>> {
-        return repository.searchRecipes(query)
-    }
 }
-
-
