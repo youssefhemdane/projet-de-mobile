@@ -1,15 +1,20 @@
 package tn.isilan.projet.ui.recipes
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tn.isilan.projet.R
 import tn.isilan.projet.data.database.RecipeDatabase
 import tn.isilan.projet.data.entities.Recipe
@@ -22,12 +27,14 @@ class RecipeDetailFragment : Fragment() {
 
     private var _binding: FragmentRecipeDetailBinding? = null
     private val binding get() = _binding!!
+
     private lateinit var viewModel: RecipeViewModel
     private var recipeId: Long = -1L
-    private var currentRecipe: Recipe? = null // Stocker la recette courante
+    private var currentRecipe: Recipe? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentRecipeDetailBinding.inflate(inflater, container, false)
@@ -37,27 +44,37 @@ class RecipeDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Récupérer l'ID depuis les arguments
         recipeId = arguments?.getLong("recipeId", -1L) ?: -1L
 
-        // Initialiser le ViewModel
         val database = RecipeDatabase.getInstance(requireContext())
-        val repository = RecipeRepository(database.recipeDao(), database.shoppingListDao())
+        val repository = RecipeRepository(
+            database.recipeDao(),
+            database.shoppingListDao()
+        )
         val factory = ViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[RecipeViewModel::class.java]
 
-        setupEditButton() // Nouveau : configurer le bouton
+        setupMenuButtons()
         loadRecipeDetails()
     }
 
-    private fun setupEditButton() {
-        // Ajouter un bouton Modifier dans la toolbar
+    /* ---------------- MENU ---------------- */
+
+    private fun setupMenuButtons() {
         binding.toolbar.inflateMenu(R.menu.menu_recipe_detail)
 
-        binding.toolbar.setOnMenuItemClickListener { menuItem ->
-            when (menuItem.itemId) {
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
                 R.id.action_edit -> {
                     currentRecipe?.let { navigateToEditRecipe(it) }
+                    true
+                }
+                R.id.action_share -> {
+                    currentRecipe?.let { shareRecipe(it) }
+                    true
+                }
+                R.id.action_delete -> {
+                    currentRecipe?.let { showDeleteConfirmation(it) }
                     true
                 }
                 else -> false
@@ -65,43 +82,54 @@ class RecipeDetailFragment : Fragment() {
         }
     }
 
+    /* ---------------- DATA ---------------- */
+
     private fun loadRecipeDetails() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.recipes.collectLatest { recipeList: List<Recipe> ->
-                val recipe = recipeList.find { it.id == recipeId }
+            viewModel.recipes.collectLatest { recipes ->
+                val recipe = recipes.find { it.id == recipeId }
 
-                recipe?.let { foundRecipe ->
-                    currentRecipe = foundRecipe // Sauvegarder pour l'édition
-
-                    binding.textTitle.text = foundRecipe.title
-                    binding.textDescription.text = foundRecipe.description
-                    binding.textIngredientsList.text = formatIngredients(foundRecipe.ingredients)
-                    binding.textInstructionsList.text = formatInstructions(foundRecipe.instructions)
-                    binding.textPreparationInfo.text = "Temps: ${foundRecipe.preparationTime} min"
-                    binding.textDifficultyInfo.text = "Difficulté: ${foundRecipe.difficulty}"
-
-                    val defaultImage = R.drawable.recipe_default_1
-                    val imageResId = when (foundRecipe.imageUri) {
-                        "recipe_default_1" -> R.drawable.recipe_default_1
-                        "recipe_default_2" -> R.drawable.recipe_default_2
-                        "recipe_default_3" -> R.drawable.recipe_default_3
-                        else -> defaultImage
-                    }
-                    binding.imageRecipe.setImageResource(imageResId)
-                    binding.imageRecipe.visibility = View.VISIBLE
-
-                } ?: run {
-                    binding.textTitle.text = "Recette non trouvée"
-                    binding.textDescription.text = "La recette n'existe pas."
-                    // Cacher le bouton Modifier si recette non trouvée
-                    binding.toolbar.menu.findItem(R.id.action_edit).isVisible = false
+                if (recipe != null) {
+                    currentRecipe = recipe
+                    displayRecipe(recipe)
+                } else {
+                    showRecipeNotFound()
                 }
             }
         }
     }
 
+    private fun displayRecipe(recipe: Recipe) {
+        binding.textTitle.text = recipe.title
+        binding.textDescription.text = recipe.description
+        binding.textIngredientsList.text = formatIngredients(recipe.ingredients)
+        binding.textInstructionsList.text = formatInstructions(recipe.instructions)
+        binding.textPreparationInfo.text = "Temps : ${recipe.preparationTime} min"
+        binding.textDifficultyInfo.text = "Difficulté : ${recipe.difficulty}"
+
+        val imageResId = when (recipe.imageUri) {
+            "recipe_default_1" -> R.drawable.recipe_default_1
+            "recipe_default_2" -> R.drawable.recipe_default_2
+            "recipe_default_3" -> R.drawable.recipe_default_3
+            else -> R.drawable.recipe_default_1
+        }
+
+        binding.imageRecipe.setImageResource(imageResId)
+        binding.imageRecipe.visibility = View.VISIBLE
+    }
+
+    private fun showRecipeNotFound() {
+        binding.textTitle.text = "Recette non trouvée"
+        binding.textDescription.text = "Cette recette n'existe plus."
+
+        binding.toolbar.menu.findItem(R.id.action_edit).isVisible = false
+        binding.toolbar.menu.findItem(R.id.action_share).isVisible = false
+        binding.toolbar.menu.findItem(R.id.action_delete).isVisible = false
+    }
+
+    /* ---------------- ACTIONS ---------------- */
+
     private fun navigateToEditRecipe(recipe: Recipe) {
-        // Naviguer vers AddRecipeFragment avec les données pré-remplies
         val bundle = Bundle().apply {
             putLong("recipeId", recipe.id)
             putString("recipeTitle", recipe.title)
@@ -119,16 +147,76 @@ class RecipeDetailFragment : Fragment() {
         )
     }
 
-    private fun formatIngredients(ingredients: String): String {
-        return ingredients.split(",")
-            .joinToString("\n") { "• ${it.trim()}" }
+    private fun showDeleteConfirmation(recipe: Recipe) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Supprimer la recette")
+            .setMessage("Voulez-vous supprimer « ${recipe.title} » ?")
+            .setPositiveButton("Supprimer") { _, _ ->
+                deleteRecipe(recipe)
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
-    private fun formatInstructions(instructions: String): String {
-        return instructions.split("\n")
+    private fun deleteRecipe(recipe: Recipe) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.deleteRecipe(recipe)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    requireContext(),
+                    "Recette supprimée",
+                    Toast.LENGTH_SHORT
+                ).show()
+                findNavController().popBackStack()
+            }
+        }
+    }
+
+    private fun shareRecipe(recipe: Recipe) {
+        val shareText = """
+            🍽️ ${recipe.title}
+
+            📝 Description :
+            ${recipe.description}
+
+            🛒 Ingrédients :
+            ${formatIngredientsForShare(recipe.ingredients)}
+
+            👨‍🍳 Instructions :
+            ${formatInstructionsForShare(recipe.instructions)}
+
+            ⏱️ Temps : ${recipe.preparationTime} min
+            🎯 Difficulté : ${recipe.difficulty}
+
+            Partagé depuis Smart Recipes
+        """.trimIndent()
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
+        }
+
+        startActivity(Intent.createChooser(intent, "Partager la recette"))
+    }
+
+    /* ---------------- FORMATTERS ---------------- */
+
+    private fun formatIngredients(ingredients: String): String =
+        ingredients.split(",")
+            .joinToString("\n") { "• ${it.trim()}" }
+
+    private fun formatInstructions(instructions: String): String =
+        instructions.split("\n")
             .mapIndexed { index, step -> "${index + 1}. ${step.trim()}" }
             .joinToString("\n")
-    }
+
+    private fun formatIngredientsForShare(ingredients: String): String =
+        formatIngredients(ingredients)
+
+    private fun formatInstructionsForShare(instructions: String): String =
+        formatInstructions(instructions)
+
+    /* ---------------- CLEANUP ---------------- */
 
     override fun onDestroyView() {
         super.onDestroyView()
