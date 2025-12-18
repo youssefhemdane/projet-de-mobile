@@ -81,6 +81,64 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Section Photo -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Photo (optionnel)"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"
+            android:padding="12dp"
+            android:background="@drawable/border_rounded">
+
+            <ImageView
+                android:id="@+id/imageRecipePreview"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:scaleType="centerCrop"
+                android:background="@color/gray_light"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/textNoPhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aucune photo"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp" />
+
+            <Button
+                android:id="@+id/buttonAddPhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+ Ajouter photo"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp"
+                app:backgroundTint="@color/primary" />
+
+            <Button
+                android:id="@+id/buttonRemovePhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Supprimer"
+                android:textAllCaps="false"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:visibility="gone"
+                app:backgroundTint="@color/error_light"
+                android:textColor="@color/error" />
+
+        </LinearLayout>
+
         <!-- Ingrédients -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"

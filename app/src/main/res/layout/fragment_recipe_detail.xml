@@ -107,6 +107,18 @@
             android:textSize="16sp"
             android:lineSpacingExtra="4dp" />
 
+
+        <!-- Ajoute CETTE ImageView après le titre et avant la description -->
+        <ImageView
+            android:id="@+id/imageRecipe"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:background="@color/gray_light"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
     </LinearLayout>
+
 
 </ScrollView>

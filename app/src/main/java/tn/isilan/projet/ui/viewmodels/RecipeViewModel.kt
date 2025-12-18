@@ -11,13 +11,16 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
 
     val recipes: Flow<List<Recipe>> = repository.allRecipes
 
+
+
     fun addRecipe(
         title: String,
         description: String,
         ingredients: String,
         instructions: String,
         preparationTime: Int,
-        difficulty: String
+        difficulty: String,
+        imageUri: String? = null
     ) {
         viewModelScope.launch {
             val recipe = Recipe(
@@ -26,7 +29,8 @@ class RecipeViewModel(private val repository: RecipeRepository) : ViewModel() {
                 ingredients = ingredients,
                 instructions = instructions,
                 preparationTime = preparationTime,
-                difficulty = difficulty
+                difficulty = difficulty,
+                imageUri = imageUri
             )
             repository.insertRecipe(recipe)
         }

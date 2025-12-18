@@ -48,7 +48,6 @@ class RecipeDetailFragment : Fragment() {
     }
 
     private fun loadRecipeDetails() {
-        // Collect the Flow from ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.recipes.collectLatest { recipeList: List<Recipe> ->
                 val recipe = recipeList.find { it.id == recipeId }
@@ -60,6 +59,10 @@ class RecipeDetailFragment : Fragment() {
                     binding.textInstructionsList.text = formatInstructions(foundRecipe.instructions)
                     binding.textPreparationInfo.text = "Temps: ${foundRecipe.preparationTime} min"
                     binding.textDifficultyInfo.text = "Difficulté: ${foundRecipe.difficulty}"
+
+                    // SUPPRIME TOUTE LA PARTIE IMAGE POUR L'INSTANT
+                    // binding.imageRecipe.setImageResource() <- Ça cause l'erreur
+
                 } ?: run {
                     binding.textTitle.text = "Recette non trouvée"
                     binding.textDescription.text = "La recette n'existe pas."

@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Projet</string>
+    <string name="app_name">Smart Recipes</string>
+    <string name="search_hint">Rechercher une recette...</string>
 </resources>
