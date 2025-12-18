@@ -26,40 +26,47 @@
         android:gravity="center"
         android:layout_marginBottom="16dp" />
 
-    <!-- Bouton Générer -->
-    <Button
-        android:id="@+id/buttonGenerateList"
+    <!-- Boutons d'action -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Générer la liste de courses"
-        android:textAllCaps="false"
-        app:backgroundTint="?attr/colorPrimary"
-        android:layout_marginBottom="16dp" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
 
-    <!-- Liste de courses -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Liste de courses:"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        <Button
+            android:id="@+id/buttonGenerateList"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Générer"
+            android:textAllCaps="false"
+            app:backgroundTint="?attr/colorPrimary"
+            android:layout_marginEnd="8dp" />
 
-    <ScrollView
+        <Button
+            android:id="@+id/buttonClearChecked"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Effacer cochés"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/gray" />
+
+    </LinearLayout>
+
+    <!-- RecyclerView pour la liste interactive -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewShopping"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1" />
 
-        <TextView
-            android:id="@+id/textShoppingList"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Votre liste de courses apparaîtra ici..."
-            android:textSize="14sp"
-            android:lineSpacingExtra="4dp"
-            android:padding="8dp"
-            android:background="@color/gray_light" />
+    <!-- Ancien TextView (optionnel, pour debug) -->
 
-    </ScrollView>
+    <TextView
+        android:id="@+id/textShoppingList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
 
 </LinearLayout>
