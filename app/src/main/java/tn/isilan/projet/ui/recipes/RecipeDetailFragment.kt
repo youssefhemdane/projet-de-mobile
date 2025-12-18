@@ -17,6 +17,8 @@ import tn.isilan.projet.databinding.FragmentRecipeDetailBinding
 import tn.isilan.projet.ui.viewmodels.RecipeViewModel
 import tn.isilan.projet.ui.viewmodels.ViewModelFactory
 
+import tn.isilan.projet.R
+
 class RecipeDetailFragment : Fragment() {
 
     private var _binding: FragmentRecipeDetailBinding? = null
@@ -59,6 +61,16 @@ class RecipeDetailFragment : Fragment() {
                     binding.textInstructionsList.text = formatInstructions(foundRecipe.instructions)
                     binding.textPreparationInfo.text = "Temps: ${foundRecipe.preparationTime} min"
                     binding.textDifficultyInfo.text = "Difficulté: ${foundRecipe.difficulty}"
+
+                    val defaultImage = R.drawable.recipe_default_1
+                    val imageResId = when (foundRecipe.imageUri) {
+                        "recipe_default_1" -> R.drawable.recipe_default_1
+                        "recipe_default_2" -> R.drawable.recipe_default_2
+                        "recipe_default_3" -> R.drawable.recipe_default_3
+                        else -> defaultImage // Évite le crash si imageUri est null
+                    }
+                    binding.imageRecipe.setImageResource(imageResId)
+                    binding.imageRecipe.visibility = View.VISIBLE
 
                     // SUPPRIME TOUTE LA PARTIE IMAGE POUR L'INSTANT
                     // binding.imageRecipe.setImageResource() <- Ça cause l'erreur

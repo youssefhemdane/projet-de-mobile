@@ -1,41 +1,52 @@
 package tn.isilan.projet.ui.recipes
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope  // <-- AJOUTE CET IMPORT
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import kotlinx.coroutines.Dispatchers  // <-- AJOUTE CET IMPORT
-import kotlinx.coroutines.launch  // <-- AJOUTE CET IMPORT
-import kotlinx.coroutines.withContext  // <-- AJOUTE CET IMPORT
+import kotlinx.coroutines.launch
 import tn.isilan.projet.R
 import tn.isilan.projet.data.database.RecipeDatabase
 import tn.isilan.projet.data.entities.Recipe
-import tn.isilan.projet.data.repository.RecipeRepository
 import tn.isilan.projet.databinding.FragmentAddRecipeBinding
-import tn.isilan.projet.ui.viewmodels.RecipeViewModel
-import tn.isilan.projet.ui.viewmodels.ViewModelFactory
-import kotlin.random.Random
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AddRecipeFragment : Fragment() {
 
     private var _binding: FragmentAddRecipeBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: RecipeViewModel
 
-    // Liste des images par défaut
+    // Images par défaut
     private val defaultImages = listOf(
         R.drawable.recipe_default_1,
         R.drawable.recipe_default_2,
         R.drawable.recipe_default_3
     )
 
-    // Image sélectionnée (ressource ID)
     private var selectedImageResId: Int = R.drawable.recipe_default_1
+    private var selectedImagePath: String? = null
+
+    // Sélecteur d'image (API moderne)
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let {
+                selectedImagePath = copyImageToInternalStorage(it)
+                displaySelectedImage(selectedImagePath)
+                binding.buttonRemovePhoto.visibility = View.VISIBLE
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,59 +60,79 @@ class AddRecipeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupViewModel()
         setupDifficultySpinner()
-        setupImageButton()
+        setupImageButtons()
         setupSaveButton()
 
-        // Afficher une image aléatoire par défaut
         showRandomImage()
     }
 
-    private fun setupViewModel() {
-        val database = RecipeDatabase.getInstance(requireContext())
-        val repository = RecipeRepository(database.recipeDao(), database.shoppingListDao())
-        val factory = ViewModelFactory(repository)
-        viewModel = androidx.lifecycle.ViewModelProvider(this, factory).get(RecipeViewModel::class.java)
-    }
+    // ================= IMAGE =================
 
-    private fun setupDifficultySpinner() {
-        val difficulties = arrayOf("Facile", "Moyen", "Difficile")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, difficulties)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerDifficulty.adapter = adapter
-    }
-
-    private fun setupImageButton() {
-        // Bouton pour changer d'image aléatoirement
+    private fun setupImageButtons() {
         binding.buttonAddPhoto.setOnClickListener {
-            showRandomImage()
+            pickImageLauncher.launch("image/*")
         }
 
-        // Cache le bouton supprimer (pas besoin)
+        binding.buttonRemovePhoto.setOnClickListener {
+            removeSelectedImage()
+        }
+
         binding.buttonRemovePhoto.visibility = View.GONE
     }
 
     private fun showRandomImage() {
-        // Choisir une image aléatoire
         selectedImageResId = defaultImages.random()
+        selectedImagePath = null
 
-        // Afficher l'image
         binding.imageRecipePreview.setImageResource(selectedImageResId)
         binding.imageRecipePreview.visibility = View.VISIBLE
         binding.textNoPhoto.visibility = View.GONE
+        binding.buttonRemovePhoto.visibility = View.GONE
+    }
 
-        // Petit effet visuel
-        binding.imageRecipePreview.animate()
-            .scaleX(1.1f)
-            .scaleY(1.1f)
-            .setDuration(200)
-            .withEndAction {
-                binding.imageRecipePreview.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(200)
+    private fun displaySelectedImage(imagePath: String?) {
+        if (imagePath.isNullOrEmpty()) {
+            showRandomImage()
+            return
+        }
+
+        val bitmap = BitmapFactory.decodeFile(imagePath)
+        binding.imageRecipePreview.setImageBitmap(bitmap)
+        binding.imageRecipePreview.visibility = View.VISIBLE
+        binding.textNoPhoto.visibility = View.GONE
+    }
+
+    private fun removeSelectedImage() {
+        selectedImagePath = null
+        showRandomImage()
+    }
+
+    private fun copyImageToInternalStorage(uri: Uri): String {
+        val inputStream = requireContext().contentResolver.openInputStream(uri)
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val file = File(requireContext().filesDir, "recipe_$timeStamp.jpg")
+
+        inputStream?.use { input ->
+            FileOutputStream(file).use { output ->
+                input.copyTo(output)
             }
+        }
+
+        return file.absolutePath
+    }
+
+    // ================= FORM =================
+
+    private fun setupDifficultySpinner() {
+        val difficulties = arrayOf("Facile", "Moyen", "Difficile")
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            difficulties
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerDifficulty.adapter = adapter
     }
 
     private fun setupSaveButton() {
@@ -116,88 +147,60 @@ class AddRecipeFragment : Fragment() {
         var isValid = true
 
         if (binding.editTextTitle.text.toString().trim().isEmpty()) {
-            binding.editTextTitle.error = "Le titre est obligatoire"
+            binding.editTextTitle.error = "Titre obligatoire"
             isValid = false
         }
 
         if (binding.editTextIngredients.text.toString().trim().isEmpty()) {
-            binding.editTextIngredients.error = "Les ingrédients sont obligatoires"
+            binding.editTextIngredients.error = "Ingrédients obligatoires"
             isValid = false
         }
 
         if (binding.editTextInstructions.text.toString().trim().isEmpty()) {
-            binding.editTextInstructions.error = "Les instructions sont obligatoires"
+            binding.editTextInstructions.error = "Instructions obligatoires"
             isValid = false
         }
 
         return isValid
     }
 
-    private fun saveRecipe() {
-        val title = binding.editTextTitle.text.toString().trim()
-        val description = binding.editTextDescription.text.toString().trim()
-        val ingredients = binding.editTextIngredients.text.toString().trim()
-        val instructions = binding.editTextInstructions.text.toString().trim()
-        val preparationTime = binding.editTextPreparationTime.text.toString().toIntOrNull() ?: 30
-        val difficulty = binding.spinnerDifficulty.selectedItem.toString()
+    // ================= SAVE =================
 
-        // Sauvegarder le nom de la ressource d'image
-        val imageResourceName = when (selectedImageResId) {
+    private fun saveRecipe() {
+        val recipe = Recipe(
+            title = binding.editTextTitle.text.toString().trim(),
+            description = binding.editTextDescription.text.toString().trim(),
+            ingredients = binding.editTextIngredients.text.toString().trim(),
+            instructions = binding.editTextInstructions.text.toString().trim(),
+            preparationTime = binding.editTextPreparationTime.text.toString().toIntOrNull() ?: 30,
+            difficulty = binding.spinnerDifficulty.selectedItem.toString(),
+            imageUri = selectedImagePath ?: getDefaultImageName()
+        )
+
+        lifecycleScope.launch {
+            RecipeDatabase.getInstance(requireContext())
+                .recipeDao()
+                .insertRecipe(recipe)
+
+            Toast.makeText(
+                requireContext(),
+                "Recette sauvegardée avec succès",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            findNavController().popBackStack()
+        }
+    }
+
+    private fun getDefaultImageName(): String {
+        return when (selectedImageResId) {
             R.drawable.recipe_default_1 -> "recipe_default_1"
             R.drawable.recipe_default_2 -> "recipe_default_2"
             R.drawable.recipe_default_3 -> "recipe_default_3"
             else -> "recipe_default_1"
         }
-
-        val recipe = Recipe(
-            title = title,
-            description = description,
-            ingredients = ingredients,
-            instructions = instructions,
-            preparationTime = preparationTime,
-            difficulty = difficulty,
-            imageUri = imageResourceName
-        )
-
-        binding.buttonSave.isEnabled = false
-        binding.buttonSave.text = "Sauvegarde..."
-
-        // CORRECTION: Utilise lifecycleScope au lieu de runBlocking
-        lifecycleScope.launch {
-            try {
-                // Appelle directement la fonction suspend
-                val database = RecipeDatabase.getInstance(requireContext())
-                database.recipeDao().insertRecipe(recipe)
-
-                // Retour sur le thread principal
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    binding.buttonSave.isEnabled = true
-                    binding.buttonSave.text = "Sauvegarder la recette"
-
-                    Toast.makeText(
-                        requireContext(),
-                        "Recette sauvegardée avec une belle image!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    findNavController().popBackStack()
-                }
-
-            } catch (e: Exception) {
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    binding.buttonSave.isEnabled = true
-                    binding.buttonSave.text = "Sauvegarder la recette"
-
-                    Toast.makeText(
-                        requireContext(),
-                        "Erreur: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    e.printStackTrace()
-                }
-            }
-        }
     }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

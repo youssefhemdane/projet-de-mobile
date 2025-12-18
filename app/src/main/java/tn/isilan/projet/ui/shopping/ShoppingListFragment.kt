@@ -20,10 +20,12 @@ class ShoppingListFragment : Fragment() {
 
     private var _binding: FragmentShoppingListBinding? = null
     private val binding get() = _binding!!
+
     private lateinit var viewModel: RecipeViewModel
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentShoppingListBinding.inflate(inflater, container, false)
@@ -33,14 +35,19 @@ class ShoppingListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialiser le ViewModel
-        val database = RecipeDatabase.getInstance(requireContext())
-        val repository = RecipeRepository(database.recipeDao(), database.shoppingListDao())
-        val factory = ViewModelFactory(repository)
-        viewModel = ViewModelProvider(this, factory)[RecipeViewModel::class.java]
-
+        setupViewModel()
         setupGenerateButton()
-        observeRecipes()
+        observeRecipesCount()
+    }
+
+    private fun setupViewModel() {
+        val database = RecipeDatabase.getInstance(requireContext())
+        val repository =
+            RecipeRepository(database.recipeDao(), database.shoppingListDao())
+        val factory = ViewModelFactory(repository)
+
+        viewModel = ViewModelProvider(this, factory)
+            .get(RecipeViewModel::class.java)
     }
 
     private fun setupGenerateButton() {
@@ -49,11 +56,11 @@ class ShoppingListFragment : Fragment() {
         }
     }
 
-    private fun observeRecipes() {
-        // Collect Flow to get the number of recipes
+    private fun observeRecipesCount() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.recipes.collectLatest { recipes: List<Recipe> ->
-                binding.textRecipeCount.text = "Nombre de recettes: ${recipes.size}"
+                binding.textRecipeCount.text =
+                    "Nombre de recettes : ${recipes.size}"
             }
         }
     }
@@ -61,23 +68,32 @@ class ShoppingListFragment : Fragment() {
     private fun generateShoppingList() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.recipes.collectLatest { recipes: List<Recipe> ->
-                if (recipes.isNotEmpty()) {
-                    val allIngredients = recipes.flatMap { recipe ->
-                        recipe.ingredients.split(",").map { it.trim() }
-                    }
 
-                    val uniqueIngredients = allIngredients.distinct().sorted()
-
-                    val shoppingList = if (uniqueIngredients.isNotEmpty()) {
-                        uniqueIngredients.joinToString("\n") { ingredient -> "• $ingredient" }
-                    } else {
-                        "Aucun ingrédient trouvé dans vos recettes"
-                    }
-
-                    binding.textShoppingList.text = shoppingList
-                } else {
-                    binding.textShoppingList.text = "Aucune recette disponible"
+                if (recipes.isEmpty()) {
+                    binding.textShoppingList.text =
+                        "Aucune recette disponible"
+                    return@collectLatest
                 }
+
+                val ingredients = recipes.flatMap { recipe ->
+                    recipe.ingredients
+                        .split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                }
+
+                val uniqueIngredients = ingredients
+                    .distinct()
+                    .sorted()
+
+                binding.textShoppingList.text =
+                    if (uniqueIngredients.isNotEmpty()) {
+                        uniqueIngredients.joinToString("\n") {
+                            "• $it"
+                        }
+                    } else {
+                        "Aucun ingrédient trouvé"
+                    }
             }
         }
     }
