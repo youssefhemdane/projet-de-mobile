@@ -1,11 +1,15 @@
 package tn.isilan.projet.ui.recipes
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -19,10 +23,6 @@ import tn.isilan.projet.data.repository.RecipeRepository
 import tn.isilan.projet.databinding.FragmentAddRecipeBinding
 import tn.isilan.projet.ui.viewmodels.RecipeViewModel
 import tn.isilan.projet.ui.viewmodels.ViewModelFactory
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.random.Random
 
 class AddRecipeFragment : Fragment() {
 
@@ -36,9 +36,22 @@ class AddRecipeFragment : Fragment() {
         R.drawable.recipe_default_3
     )
 
-    private var selectedImageResId: Int = R.drawable.recipe_default_1
+    private var selectedImageUri: Uri? = null
     private var isEditMode = false
     private var recipeId: Long = -1L
+
+    // Register the activity result launcher for image selection
+    private val pickImageResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.data?.let { imageUri ->
+                    selectedImageUri = imageUri
+                    binding.imageRecipePreview.setImageURI(imageUri)
+                    binding.imageRecipePreview.visibility = View.VISIBLE
+                    binding.textNoPhoto.visibility = View.GONE
+                }
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,12 +81,14 @@ class AddRecipeFragment : Fragment() {
         val database = RecipeDatabase.getInstance(requireContext())
         val repository = RecipeRepository(database.recipeDao(), database.shoppingListDao())
         val factory = ViewModelFactory(repository)
-        viewModel = androidx.lifecycle.ViewModelProvider(this, factory).get(RecipeViewModel::class.java)
+        viewModel =
+            androidx.lifecycle.ViewModelProvider(this, factory).get(RecipeViewModel::class.java)
     }
 
     private fun setupDifficultySpinner() {
         val difficulties = arrayOf("Facile", "Moyen", "Difficile")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, difficulties)
+        val adapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, difficulties)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerDifficulty.adapter = adapter
     }
@@ -89,7 +104,9 @@ class AddRecipeFragment : Fragment() {
                 binding.editTextDescription.setText(bundle.getString("recipeDescription", ""))
                 binding.editTextIngredients.setText(bundle.getString("recipeIngredients", ""))
                 binding.editTextInstructions.setText(bundle.getString("recipeInstructions", ""))
-                binding.editTextPreparationTime.setText(bundle.getInt("recipePreparationTime", 30).toString())
+                binding.editTextPreparationTime.setText(
+                    bundle.getInt("recipePreparationTime", 30).toString()
+                )
 
                 val difficulty = bundle.getString("recipeDifficulty", "Facile")
                 val difficulties = arrayOf("Facile", "Moyen", "Difficile")
@@ -99,13 +116,8 @@ class AddRecipeFragment : Fragment() {
                 }
 
                 val imageUri = bundle.getString("recipeImageUri", "recipe_default_1")
-                selectedImageResId = when (imageUri) {
-                    "recipe_default_1" -> R.drawable.recipe_default_1
-                    "recipe_default_2" -> R.drawable.recipe_default_2
-                    "recipe_default_3" -> R.drawable.recipe_default_3
-                    else -> R.drawable.recipe_default_1
-                }
-                binding.imageRecipePreview.setImageResource(selectedImageResId)
+                selectedImageUri = Uri.parse(imageUri)
+                binding.imageRecipePreview.setImageURI(selectedImageUri)
                 binding.imageRecipePreview.visibility = View.VISIBLE
                 binding.textNoPhoto.visibility = View.GONE
 
@@ -117,27 +129,19 @@ class AddRecipeFragment : Fragment() {
 
     private fun setupImageButton() {
         binding.buttonAddPhoto.setOnClickListener {
-            showRandomImage()
+            // Intent to pick an image from gallery
+            val intent = Intent(Intent.ACTION_PICK)
+            intent.type = "image/*"
+            pickImageResult.launch(intent)
         }
         binding.buttonRemovePhoto.visibility = View.GONE
     }
 
     private fun showRandomImage() {
-        selectedImageResId = defaultImages.random()
-        binding.imageRecipePreview.setImageResource(selectedImageResId)
+        val randomImageResId = defaultImages.random()
+        binding.imageRecipePreview.setImageResource(randomImageResId)
         binding.imageRecipePreview.visibility = View.VISIBLE
         binding.textNoPhoto.visibility = View.GONE
-
-        binding.imageRecipePreview.animate()
-            .scaleX(1.1f)
-            .scaleY(1.1f)
-            .setDuration(200)
-            .withEndAction {
-                binding.imageRecipePreview.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(200)
-            }
     }
 
     private fun setupSaveButton() {
@@ -177,12 +181,7 @@ class AddRecipeFragment : Fragment() {
         val preparationTime = binding.editTextPreparationTime.text.toString().toIntOrNull() ?: 30
         val difficulty = binding.spinnerDifficulty.selectedItem.toString()
 
-        val imageResourceName = when (selectedImageResId) {
-            R.drawable.recipe_default_1 -> "recipe_default_1"
-            R.drawable.recipe_default_2 -> "recipe_default_2"
-            R.drawable.recipe_default_3 -> "recipe_default_3"
-            else -> "recipe_default_1"
-        }
+        val imageUriString = selectedImageUri?.toString() ?: "recipe_default_1"
 
         val recipe = if (isEditMode) {
             Recipe(
@@ -193,7 +192,7 @@ class AddRecipeFragment : Fragment() {
                 instructions = instructions,
                 preparationTime = preparationTime,
                 difficulty = difficulty,
-                imageUri = imageResourceName,
+                imageUri = imageUriString,
                 createdAt = System.currentTimeMillis()
             )
         } else {
@@ -204,7 +203,7 @@ class AddRecipeFragment : Fragment() {
                 instructions = instructions,
                 preparationTime = preparationTime,
                 difficulty = difficulty,
-                imageUri = imageResourceName
+                imageUri = imageUriString
             )
         }
 
